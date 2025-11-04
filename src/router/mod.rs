@@ -22,7 +22,7 @@ impl Router<'_> {
             .map(|(i, token)| (token, i))
             .collect::<HashMap<_, _>>();
 
-        let token_graph = TokenGraph::init(pools, &token_index);
+        let token_graph = TokenGraph::from_pools(pools, &token_index);
 
         Router {
             token_index,
@@ -37,6 +37,6 @@ impl Router<'_> {
         let output_token = self.token_index[output_token];
 
         self.token_graph
-            .new_equilibrium_after_trade(input_token, output_token, input_amount)
+            .apply_trade_and_solve(input_token, output_token, input_amount)
     }
 }

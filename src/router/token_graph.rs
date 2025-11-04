@@ -38,11 +38,12 @@ pub(super) struct TokenNode {
 }
 
 impl TokenGraph {
-    /// Initializes the token graph from the given pools and token index mapping.
-    ///
-    /// Note: Initially square-root prices `q` are set to 1.0 for all tokens, and
-    /// will only be updated during the first equilibrium computation.
-    pub(super) fn init(pools: Vec<UniV2Pool>, token_index: &HashMap<&str, usize>) -> Self {
+    /// Initializes the aggregated token graph from pools:
+    /// - accumulates Tₜ (totals per token),
+    /// - sums K(u, v) = Σ √kᵢ.
+    /// - sets initial prices `q` to 1.0 for all tokens (those prices will be updated during first
+    ///   equilibrium computation).
+    pub(super) fn from_pools(pools: Vec<UniV2Pool>, token_index: &HashMap<&str, usize>) -> Self {
         let mut nodes = vec![
             TokenNode {
                 total_reserve: 0.0,
@@ -72,7 +73,7 @@ impl TokenGraph {
     /// then resolves the new no-arbitrage equilibrium of the entire pool network.
     /// The difference in `output_token` reserves before and after equilibrium
     /// represents the extractable output amount.
-    pub(super) fn new_equilibrium_after_trade(
+    pub(super) fn apply_trade_and_solve(
         &mut self,
         input_token: usize,
         output_token: usize,
@@ -86,8 +87,8 @@ impl TokenGraph {
 }
 
 impl TokenGraph {
-    /// Iteratively solves for the no-arbitrage equilibrium using fixed-point iteration, computing
-    /// the maximum output amount of `output_token` `f` that can be extracted in the process.
+    /// Fixed-point no-arbitrage solver (Gauss–Seidel), computing the maximum amount of
+    /// `output_token` `f` that can be extracted in the process.
     ///
     /// The system enforces the conservation of total token balances:
     ///
@@ -131,7 +132,7 @@ impl TokenGraph {
                 }
                 let q = self.nodes[token].q;
 
-                // Update q_u ← T_u / ( ∑ K_{u v} / q_v )
+                // Update q_u ← T_u / ( ∑ K(u, v) / q_v )
                 let mut denom = 0.0;
                 for (paired_token, liquidity) in self.neighbors_with_liquidity(token) {
                     denom += liquidity / self.nodes[paired_token].q;
