@@ -10,7 +10,10 @@ fn main() {
     ];
     let mut router = Router::new(pools);
     let a_sell_amount = 20.;
+
+    println!("Initial router state: {router:#?}");
     let b_output_amount = router.solve("A", "B", a_sell_amount);
+    println!("Final router state: {router:#?}");
     println!("Solution for {a_sell_amount:.2} A to B: {b_output_amount:.2}");
 
     let pools = vec![
