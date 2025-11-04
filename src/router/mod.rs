@@ -124,7 +124,7 @@ impl Router {
                 }
                 let updated_q = self.reserve_by_token[token] / denom;
 
-                let relative_change = ((updated_q - q).abs()) / q.max(1.0);
+                let relative_change = ((updated_q - q).abs()) / q;
 
                 if relative_change > max_relative_change {
                     max_relative_change = relative_change;
