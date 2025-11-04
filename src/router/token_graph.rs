@@ -80,9 +80,7 @@ impl TokenGraph {
         input_amount: f64,
     ) -> f64 {
         self.nodes[input_token].total_reserve += input_amount;
-        let output_amount = self.no_arbitrage_equilibrium(output_token);
-
-        output_amount
+        self.no_arbitrage_equilibrium(output_token)
     }
 }
 
@@ -133,10 +131,10 @@ impl TokenGraph {
                 let q = self.nodes[token].q;
 
                 // Update q_u ← T_u / ( ∑ K(u, v) / q_v )
-                let mut denom = 0.0;
-                for (paired_token, liquidity) in self.neighbors_with_liquidity(token) {
-                    denom += liquidity / self.nodes[paired_token].q;
-                }
+                let denom = self
+                    .neighbors_with_liquidity(token)
+                    .map(|(paired_token, liquidity)| liquidity / self.nodes[paired_token].q)
+                    .sum::<f64>();
                 let updated_q = self.nodes[token].total_reserve / denom;
 
                 let relative_change = ((updated_q - q).abs()) / q;
@@ -157,10 +155,12 @@ impl TokenGraph {
         self.normalize_prices();
 
         // Compute and update the output reserve based after equilibrium
-        let mut output_reserve = 0.0;
-        for (token, liquidity) in self.neighbors_with_liquidity(output_token) {
-            output_reserve += liquidity * (self.nodes[output_token].q / self.nodes[token].q);
-        }
+        let output_reserve = self
+            .neighbors_with_liquidity(output_token)
+            .map(|(token, liquidity)| {
+                liquidity * (self.nodes[output_token].q / self.nodes[token].q)
+            })
+            .sum::<f64>();
         let extracted_amount = self.nodes[output_token].total_reserve - output_reserve;
         self.nodes[output_token].total_reserve = output_reserve;
 
